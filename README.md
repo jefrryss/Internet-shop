@@ -121,3 +121,5 @@ docker-compose up --build
 Frontend: http://localhost:3000
 
 Swagger UI: http://localhost:8082
+
+во фронте заказы появляются с задержкой 
