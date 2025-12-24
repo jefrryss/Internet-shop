@@ -1,9 +1,6 @@
-version: '3.8'
+
 
 services:
-  # ==========================================
-  # ИНФРАСТРУКТУРА (Kafka & Zookeeper)
-  # ==========================================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
@@ -35,9 +32,7 @@ services:
       interval: 10s
       retries: 5
 
-  # ==========================================
-  # БАЗЫ ДАННЫХ
-  # ==========================================
+
   postgres-orders:
     image: postgres:15-alpine
     container_name: orders-db
@@ -72,11 +67,9 @@ services:
       interval: 5s
       retries: 5
 
-  # ==========================================
-  # МИКРОСЕРВИСЫ
-  # ==========================================
+ 
 
-  # 1. API GATEWAY
+ 
   gateway-service:
     build: ./api-gateway
     container_name: gateway
@@ -90,7 +83,7 @@ services:
       ORDERS_SERVICE_URL: http://orders-service:8081
       PAYMENTS_SERVICE_URL: http://payments-service:8080
 
-  # 2. ORDER SERVICE
+  
   orders-service:
     build: ./order-service
     container_name: orders-service
@@ -107,7 +100,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # 3. PAYMENT SERVICE
+ 
   payments-service:
     build: ./payment-service
     container_name: payments-service
@@ -125,19 +118,17 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # 4. FRONTEND
+
   frontend:
     build: ./frontend
     container_name: frontend-app
     ports:
-      - "3000:80" # В браузере открывать http://localhost:3000
+      - "3000:80"
     depends_on:
       - gateway-service
     restart: unless-stopped
 
-  # ==========================================
-  # ИНСТРУМЕНТЫ
-  # ==========================================
+
   swagger-ui:
     image: swaggerapi/swagger-ui
     container_name: swagger-ui
