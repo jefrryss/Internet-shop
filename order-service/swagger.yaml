@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: Gozon Microservices API
+  description: API для сервисов Заказов и Оплат интернет-магазина 
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8081
+    description: Orders Service API
+  - url: http://localhost:8080
+    description: Payments Service API
+
+tags:
+  - name: Orders
+    description: Управление заказами (порт 8081)
+  - name: Accounts
+    description: Управление счетами и балансом (порт 8080)
+
+paths:
+
+  /orders:
+    post:
+      tags:
+        - Orders
+      summary: Создать новый заказ
+      description: Создает заказ и асинхронно инициирует оплату.
+      parameters:
+        - in: header
+          name: X-User-Id
+          schema:
+            type: integer
+          required: true
+          description: ID пользователя
+          example: 45
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  example: 1000
+                  description: Сумма заказа в копейках
+      responses:
+        '201':
+          description: Заказ создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id:
+                    type: string
+                    example: "550e8400-e29b-41d4-a716-446655440000"
+                  status:
+                    type: string
+                    example: "PENDING"
+    get:
+      tags:
+        - Orders
+      summary: Получить список заказов пользователя
+      parameters:
+        - in: header
+          name: X-User-Id
+          schema:
+            type: integer
+          required: true
+      responses:
+        '200':
+          description: Список заказов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+
+  /orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Получить статус заказа
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-User-Id
+          required: false 
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Детали заказа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Заказ не найден
+
+  
+  /accounts:
+    post:
+      tags:
+        - Accounts
+      summary: Создать счет
+      description: Создает счет для пользователя (если его нет).
+      parameters:
+        - in: header
+          name: X-User-Id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Счет создан успешно
+        '400':
+          description: Счет уже существует
+
+  /accounts/deposit:
+    post:
+      tags:
+        - Accounts
+      summary: Пополнить баланс
+      parameters:
+        - in: header
+          name: X-User-Id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  minimum: 1
+                  example: 5000
+      responses:
+        '200':
+          description: Баланс пополнен
+        '404':
+          description: Счет не найден
+
+  /accounts/balance:
+    get:
+      tags:
+        - Accounts
+      summary: Получить текущий баланс
+      parameters:
+        - in: header
+          name: X-User-Id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Баланс пользователя
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balance:
+                    type: integer
+                    example: 2500
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: integer
+        amount:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, PAID, FAILED]
+        created_at:
+          type: string
+          format: date-time

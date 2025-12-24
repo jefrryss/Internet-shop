@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: Microservices API
+  description: |
+    Единый API Gateway для системы заказов и оплат.
+    Все запросы проксируются через Gateway (порт 8000) к соответствующим микросервисам.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@gozon.local
+
+servers:
+  - url: http://localhost:8000
+    description: API Gateway (Main Entrypoint)
+
+components:
+  
+  schemas:
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Уникальный ID заказа
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        user_id:
+          type: integer
+          description: ID пользователя
+          example: 42
+        amount:
+          type: integer
+          description: Сумма заказа
+          example: 1000
+        status:
+          type: string
+          description: Статус обработки заказа
+          enum: [PENDING, PAID, FAILED, CANCELLED]
+          example: "PENDING"
+    
+
+    CreateOrderRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: integer
+          minimum: 1
+          description: Сумма заказа (в копейках/центах)
+          example: 1500
+
+
+    DepositRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: integer
+          minimum: 1
+          description: Сумма пополнения
+          example: 5000
+
+    BalanceResponse:
+      type: object
+      properties:
+        balance:
+          type: integer
+          description: Текущий баланс пользователя
+          example: 12500
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Internal Server Error"
+
+  parameters:
+    UserIdHeader:
+      in: header
+      name: X-User-Id
+      schema:
+        type: integer
+      required: true
+      description: |
+        ID пользователя (имитация авторизации). 
+        Обязателен для всех запросов.
+      example: 42
+
+tags:
+  - name: Orders
+    description: API управления заказами (Order Service)
+  - name: Accounts
+    description: API управления счетами и балансом (Payment Service)
+
+paths:
+  # ORDER SERVICE API
+  /orders:
+    post:
+      summary: Создать новый заказ
+      description: |
+        Создает заказ в статусе PENDING. 
+        Gateway перенаправляет запрос в Order Service, который сохраняет событие в Outbox для асинхронной оплаты.
+      tags:
+        - Orders
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Заказ успешно создан
+        '400':
+          description: Некорректные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Ошибка Gateway (Order Service недоступен)
+
+    get:
+      summary: Получить список всех заказов пользователя
+      tags:
+        - Orders
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      responses:
+        '200':
+          description: Список заказов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+
+  /orders/{id}:
+    get:
+      summary: Получить детали конкретного заказа
+      tags:
+        - Orders
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: UUID заказа
+      responses:
+        '200':
+          description: Детали заказа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Заказ не найден
+
+  
+  # PAYMENT SERVICE API
+  /accounts:
+    post:
+      summary: Создать счет для пользователя
+      description: Инициализирует запись в таблице accounts для переданного X-User-Id.
+      tags:
+        - Accounts
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      responses:
+        '201':
+          description: Счет успешно создан
+        '400':
+          description: Ошибка создания (возможно, счет уже есть)
+
+  /accounts/deposit:
+    post:
+      summary: Пополнить баланс
+      description: Увеличивает баланс пользователя на указанную сумму.
+      tags:
+        - Accounts
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+      responses:
+        '200':
+          description: Средства зачислены
+        '404':
+          description: Счет пользователя не найден (сначала выполните POST /accounts)
+
+  /accounts/balance:
+    get:
+      summary: Получить текущий баланс
+      tags:
+        - Accounts
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      responses:
+        '200':
+          description: Баланс пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '404':
+          description: Счет не найден

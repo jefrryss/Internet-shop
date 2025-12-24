@@ -1,0 +1,104 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: nc -z localhost 9092 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-payments:
+    image: postgres:15
+    container_name: payments-db
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: payments
+      POSTGRES_PASSWORD: payments
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../payment-service/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payments"]
+      interval: 5s
+      retries: 5
+
+  postgres-orders:
+    image: postgres:15
+    container_name: orders-db
+    environment:
+      POSTGRES_DB: orders
+      POSTGRES_USER: orders
+      POSTGRES_PASSWORD: orders
+    ports:
+      - "5433:5432" 
+    volumes:
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orders"]
+      interval: 5s
+      retries: 5
+
+  payments-service:
+    build: ../payment-service
+    container_name: payments-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres-payments:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      HTTP_PORT: 8080
+      DB_DSN: postgres://payments:payments@postgres-payments:5432/payments?sslmode=disable
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: payments-group
+    restart: unless-stopped
+
+  orders-service:
+    build: .
+    container_name: orders-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres-orders:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      HTTP_PORT: 8081
+      DB_DSN: postgres://orders:orders@postgres-orders:5432/orders?sslmode=disable
+      KAFKA_BROKER: kafka:9092
+    restart: unless-stopped
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: swagger-ui
+    ports:
+      - "8082:8080"
+    environment:
+      SWAGGER_JSON: /spec/swagger.yaml
+    volumes:
+      - ./swagger.yaml:/spec/swagger.yaml

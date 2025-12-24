@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gozon Shop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+<div class="container py-4">
+    <h2 class="text-center mb-4">Инет магаз</h2>
+
+    <div class="card p-3 border-primary mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-auto"><label class="fw-bold">User ID (введите для смены):</label></div>
+            <div class="col-sm-2"><input type="text" id="userId" class="form-control" value="1"></div>
+            <div class="col-auto"><span class="text-muted small">Данные обновятся автоматически</span></div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">Кошелек</div>
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <p class="text-muted mb-1">Текущий баланс</p>
+                    <h2 class="mb-4"><span id="balanceDisplay">Загрузка...</span> ₽</h2>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-success" onclick="handleCreateAccount()">Создать новый счет</button>
+                        <hr>
+                        <div class="input-group">
+                            <input type="number" id="depositAmount" class="form-control" placeholder="Сумма пополнения">
+                            <button class="btn btn-success" onclick="handleDeposit()">Пополнить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">Заказы</div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="number" id="orderAmount" class="form-control" placeholder="Сумма заказа">
+                        <button class="btn btn-primary" onclick="handleCreateOrder()">Сделать заказ</button>
+                    </div>
+                    <h6 class="border-bottom pb-2">История транзакций:</h6>
+                    <ul class="list-group list-group-flush" id="ordersList" style="max-height: 400px; overflow-y: auto;">
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

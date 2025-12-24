@@ -1,0 +1,11 @@
+body { background-color: #f8f9fa; padding-top: 20px; }
+.card { border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
+.card-header { font-weight: bold; border-radius: 15px 15px 0 0 !important; }
+.list-group-item { border-left: none; border-right: none; padding: 12px; }
+#balanceDisplay { color: #198754; font-weight: bold; }
+
+.alert { animation: slideIn 0.3s ease-out; }
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

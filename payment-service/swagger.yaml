@@ -1,0 +1,87 @@
+openapi: 3.0.0
+
+info:
+  title: Payments Service
+  version: "1.0"
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /accounts:
+    post:
+      summary: Создать счёт
+      parameters:
+        - name: X-User-Id
+          in: header
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "201":
+          description: Счёт создан
+        "400":
+          description: Счёт уже существует
+
+  /accounts/deposit:
+    post:
+      summary: Пополнить счёт
+      parameters:
+        - name: X-User-Id
+          in: header
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepositRequest"
+      responses:
+        "200":
+          description: Баланс пополнен
+        "404":
+          description: Счёт не найден
+
+  /accounts/balance:
+    get:
+      summary: Получить баланс
+      parameters:
+        - name: X-User-Id
+          in: header
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Баланс счёта
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BalanceResponse"
+        "404":
+          description: Счёт не найден
+
+components:
+  schemas:
+    DepositRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: integer
+          format: int64
+          example: 1000
+
+    BalanceResponse:
+      type: object
+      properties:
+        balance:
+          type: integer
+          format: int64
+          example: 5000
